@@ -127,11 +127,11 @@ public class SpellCastingTest {
         int manaBefore = wizard.getManaStore();
         assertEquals(600, manaBefore);
 
-        // Act: damage far exceeds manaStore
+        // damage far exceeds manaStore
         int damage = manaBefore + 500;       // 1100 >> 600
         wizard.receiveDamage(damage);
 
-        // Assert: superclass invariant manaStore >= 0 must hold
+        // superclass invariant manaStore >= 0 must hold
         assertTrue(wizard.getManaStore() >= 0,
                 "LSP violation: manaStore dropped to " + wizard.getManaStore()
                         + " (Spellcaster contract requires >= 0)");
@@ -201,8 +201,34 @@ public class SpellCastingTest {
         }
         throw new IllegalArgumentException("Unsupported cast target: " + target);
     }
+
+    // fireball
+    private static final Spell FIREBALL = new Spell("Fireball", 20, 5);
+
     @Test
     void castSpellCompileTest() throws Exception{
+        Wizard wizard = new Wizard(10, 100);
 
+        int viaSpell = wizard.castSpell(FIREBALL);          // -> castSpell(Spell) -> 2*20 = 40
+        Object spellAsObject = FIREBALL;
+        int viaObject = wizard.castSpell(spellAsObject);    // -> castSpell(Object) -> 10
+
+        assertEquals(40, viaSpell);
+        assertEquals(10, viaObject);
+        assertNotEquals(viaSpell, viaObject,
+                "Same runtime object, different overload — static binding hazard");
+    }
+
+    // safe wrapper test
+    @Test
+    void safeWrapperTest() throws Exception {
+        Wizard wizard = new Wizard(10, 100);
+        Object spellAsObject = FIREBALL;
+
+        int wrapped = safeCast(wizard, spellAsObject);
+        int direct  = wizard.castSpell(FIREBALL);
+
+        assertEquals(direct, wrapped, "Wrapper must match Spell-typed dispatch");
+        assertEquals(40, wrapped);
     }
 }
